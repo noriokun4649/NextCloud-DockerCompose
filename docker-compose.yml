@@ -1,0 +1,55 @@
+version: '2'
+
+volumes:
+  nextcloud:
+  db:
+
+services:
+  db:
+    image: mariadb:10.6
+    restart: always
+    command: --transaction-isolation=READ-COMMITTED --log-bin=binlog --binlog-format=ROW
+    volumes:
+      - db:/var/lib/mysql
+    environment:
+      - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASS}
+      - MYSQL_PASSWORD=${MYSQL_PASS}
+      - MYSQL_DATABASE=nextcloud
+      - MYSQL_USER=${MYSQL_USERNAME}
+
+  app:
+    image: nextcloud
+    restart: always
+    ports:
+      - 8080:80
+    links:
+      - db
+      - redis
+    volumes:
+      - nextcloud:/var/www/html
+      # - /mnt/nas/data:/var/www/html/data
+    environment:
+      - MYSQL_PASSWORD=${MYSQL_PASS}
+      - MYSQL_DATABASE=nextcloud
+      - MYSQL_USER=${MYSQL_USERNAME}
+      - MYSQL_HOST=db
+      - REDIS_HOST=redis
+      - REDIS_HOST_PASSWORD=${REDIS_PASS}
+      - NEXTCLOUD_TRUSTED_DOMAINS=${TRUSTED_DOMAINS}
+      - NC_default_phone_region=${PHONE_REGION}
+      - SMTP_HOST=${SMTP_HOST}
+      - SMTP_PORT=${SMTP_PORT}
+      - SMTP_NAME=${SMTP_NAME}
+      - SMTP_PASSWORD=${SMTP_PASSWORD}
+      - MAIL_FROM_ADDRESS=${MAIL_FROM_ADDRESS}
+      - MAIL_DOMAIN=${MAIL_DOMAIN}
+      - OVERWRITEHOST=${OVERWRITE_HOST}
+      - OVERWRITEPROTOCOL=${OVERWRITE_PROTOCOL}
+    depends_on:
+      - db
+      - redis
+
+  redis:
+    image: redis
+    restart: always
+    command: redis-server --requirepass ${REDIS_PASS}
